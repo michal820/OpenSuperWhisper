@@ -30,8 +30,6 @@ class AudioRecorder: NSObject, ObservableObject {
     private var notificationObserver: Any?
     private var microphoneChangeObserver: Any?
     private var connectionCheckTimer: DispatchSourceTimer?
-    private var recordingDeviceID: AudioDeviceID?
-    private var previousDefaultInputDeviceID: AudioDeviceID?
 
     // MARK: - Singleton Instance
 
@@ -177,16 +175,17 @@ class AudioRecorder: NSObject, ObservableObject {
         print("start record file to \(fileURL)")
         
         var channelCount = 1
+        var inputDevice: AudioDeviceID?
         #if os(macOS)
         if let activeMic = activeMic {
-            switchSystemDefaultInput(to: activeMic)
+            inputDevice = MicrophoneService.shared.getCoreAudioDeviceID(for: activeMic)
             channelCount = MicrophoneService.shared.getInputChannelCount(for: activeMic)
             print("Recording with \(channelCount) input channel(s) from \(activeMic.displayName)")
         }
         #endif
         
         do {
-            let session = try PCMRecordingSession(url: fileURL, onLevel: { decibels in
+            let session = try PCMRecordingSession(url: fileURL, inputDevice: inputDevice, onLevel: { decibels in
                 Task { @MainActor in AudioLevelMeter.shared.push(decibels: decibels) }
             }) { [weak self] error in
                 self?.workQueue.async {
@@ -210,7 +209,6 @@ class AudioRecorder: NSObject, ObservableObject {
             print("Failed to start recording: \(error)")
             recordingSession = nil
             currentRecordingURL = nil
-            restoreSystemDefaultInputIfNeeded()
             failStart(sessionID: sessionID, message: error.localizedDescription)
         }
     }
@@ -244,14 +242,8 @@ class AudioRecorder: NSObject, ObservableObject {
                     do { recording = try recorder.finish() }
                     catch {
                         self.preserveCaptureFailure(error)
-                        self.restoreSystemDefaultInputIfNeeded()
                         continuation.resume(returning: nil)
                         return
-                    }
-                    // A new recording may have started during the tail window;
-                    // it will restore the system input itself when it stops.
-                    if self.recordingSession == nil {
-                        self.restoreSystemDefaultInputIfNeeded()
                     }
                     
                     if let recording, recording.duration >= Self.minimumRecordingDuration {
@@ -287,7 +279,6 @@ class AudioRecorder: NSObject, ObservableObject {
         }
         recordingSession = nil
         stopConnectionMonitoring()
-        restoreSystemDefaultInputIfNeeded()
         updateRecordingState(isRecording: false, isConnecting: false)
         
         guard let url = currentRecordingURL else { return nil }
@@ -311,34 +302,6 @@ class AudioRecorder: NSObject, ObservableObject {
         }
     }
 
-    #if os(macOS)
-    private func switchSystemDefaultInput(to device: MicrophoneService.AudioDevice) {
-        guard let targetID = MicrophoneService.shared.getCoreAudioDeviceID(for: device) else { return }
-        recordingDeviceID = targetID
-        
-        let currentDefault = MicrophoneService.shared.getCurrentSystemDefaultInputDevice()
-        guard currentDefault != targetID else { return }
-        
-        if MicrophoneService.shared.setSystemDefaultInputDevice(targetID) {
-            previousDefaultInputDeviceID = currentDefault
-            print("Set system default input to: \(device.displayName)")
-        }
-    }
-    
-    private func restoreSystemDefaultInputIfNeeded() {
-        guard let previous = previousDefaultInputDeviceID else { return }
-        previousDefaultInputDeviceID = nil
-        
-        // Restore only if the default is still the device we set,
-        // so a manual change made by the user during recording is kept.
-        if MicrophoneService.shared.getCurrentSystemDefaultInputDevice() == recordingDeviceID {
-            _ = MicrophoneService.shared.setSystemDefaultInputDevice(previous)
-        }
-    }
-    #else
-    private func switchSystemDefaultInput(to device: MicrophoneService.AudioDevice) {}
-    private func restoreSystemDefaultInputIfNeeded() {}
-    #endif
     
     func moveTemporaryRecording(from tempURL: URL, to finalURL: URL) throws {
 

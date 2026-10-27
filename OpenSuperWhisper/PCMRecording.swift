@@ -1,3 +1,4 @@
+import AudioToolbox
 import AVFoundation
 import Foundation
 
@@ -133,10 +134,15 @@ final class PCMRecordingSession {
     private var pendingDecibels: Float = -160
     private var lastLevelReport: TimeInterval = 0
 
-    init(url: URL, onLevel: @escaping (Float) -> Void = { _ in }, onFailure: @escaping (Error) -> Void = { _ in }) throws {
+    /// `inputDevice` nil records from the system default input.
+    init(url: URL, inputDevice: AudioDeviceID? = nil,
+         onLevel: @escaping (Float) -> Void = { _ in }, onFailure: @escaping (Error) -> Void = { _ in }) throws {
         self.onFailure = onFailure
         self.onLevel = onLevel
         let input = engine.inputNode
+        if let inputDevice {
+            try Self.setInputDevice(inputDevice, on: input)
+        }
         let format = input.outputFormat(forBus: 0)
         writer = try PCMRecordingWriter(url: url, inputFormat: format)
         input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
@@ -159,6 +165,18 @@ final class PCMRecordingSession {
             }
         }
         engine.prepare()
+    }
+
+    /// Points the engine's input at `device` instead of switching the system
+    /// default input. Switching the default flips a Bluetooth headset that
+    /// is playing other audio between its music (A2DP) and call (HFP)
+    /// profiles, pausing and re-leveling that audio on every recording.
+    private static func setInputDevice(_ device: AudioDeviceID, on input: AVAudioInputNode) throws {
+        guard let unit = input.audioUnit else { throw TranscriptionError.audioConversionFailed }
+        var device = device
+        let status = AudioUnitSetProperty(unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0,
+                                          &device, UInt32(MemoryLayout<AudioDeviceID>.size))
+        guard status == noErr else { throw NSError(domain: NSOSStatusErrorDomain, code: Int(status)) }
     }
 
     /// Runs on the tap thread. Reports the loudest level (dBFS) of each ~33 ms
