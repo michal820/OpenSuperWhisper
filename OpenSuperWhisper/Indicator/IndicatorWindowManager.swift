@@ -52,11 +52,11 @@ class IndicatorWindowManager: IndicatorViewDelegate {
         }
         guard let window = window else { return }
         
-        // The indicator stays where the user last dragged it; until then the
-        // card's top sits 100 points below the top center of the screen.
+        // Each screen keeps the spot the user last dragged the indicator to;
+        // until then the card's top sits 100 points below its top center.
         let layout = IndicatorLayout.shared
         let defaultCenter = NSPoint(x: screen.frame.midX, y: screen.frame.maxY - 100 - layout.cardSize.height / 2)
-        window.setFrame(layout.windowFrame(cardCenter: layout.savedCardCenter ?? defaultCenter), display: false)
+        window.setFrame(layout.windowFrame(cardCenter: layout.savedCardCenter(on: screen) ?? defaultCenter), display: false)
         
         // The first committed frame must be fully transparent, otherwise the
         // card flashes at full size before the appear animation starts.

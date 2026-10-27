@@ -7,8 +7,8 @@ import SwiftUI
 @MainActor
 final class AudioLevelMeter: ObservableObject {
     static let shared = AudioLevelMeter()
-    /// Number of recent levels kept, newest last.
-    static let historyCount = 8
+    /// Number of recent levels kept, newest last: about one second at ~30 fps.
+    static let historyCount = 30
 
     /// Room noise on a laptop mic sits just below this, so silence shows flat bars.
     private static let floorDecibels: Float = -55
@@ -53,31 +53,32 @@ final class AudioLevelMeter: ObservableObject {
     }
 }
 
-/// Bars mirrored around the center line. The middle bar follows the newest
-/// level and each bar further out an older one, so speech ripples outward
-/// from the center; heights ease between updates.
+/// Scrolling bar waveform of the most recent levels, newest on the right,
+/// shaded from faded lavender (older) to pink (newest). Heights ease between
+/// updates.
 struct WaveformView: View {
     @ObservedObject var meter = AudioLevelMeter.shared
     var scale: CGFloat = 1
 
-    private static let barCount = 2 * AudioLevelMeter.historyCount - 1
-    /// Center bars reach full height and edge bars about half, for a rounded silhouette.
-    private static let envelope: [CGFloat] = (0..<barCount).map { index in
-        let distance = CGFloat(abs(index - barCount / 2)) / CGFloat(barCount / 2)
-        return 1 - 0.5 * distance * distance
-    }
+    private static let barWidth: CGFloat = 2
+    private static let barSpacing: CGFloat = 2.5
 
     var body: some View {
-        HStack(spacing: 3 * scale) {
-            ForEach(0..<Self.barCount, id: \.self) { index in
-                let age = abs(index - Self.barCount / 2)
-                let level = meter.levels[meter.levels.count - 1 - age]
-                Capsule()
-                    .fill(Color.red)
-                    .frame(width: 3 * scale, height: (3 + 19 * level * Self.envelope[index]) * scale)
+        let count = CGFloat(AudioLevelMeter.historyCount)
+        LinearGradient(
+            colors: [IndicatorStyle.lavender.opacity(0.4), IndicatorStyle.lavender, IndicatorStyle.pink],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+        .mask {
+            HStack(spacing: Self.barSpacing * scale) {
+                ForEach(meter.levels.indices, id: \.self) { index in
+                    Capsule()
+                        .frame(width: Self.barWidth * scale, height: (2 + 18 * meter.levels[index]) * scale)
+                }
             }
         }
-        .frame(height: 24 * scale)
+        .frame(width: (count * Self.barWidth + (count - 1) * Self.barSpacing) * scale, height: 22 * scale)
         .animation(.easeOut(duration: 0.1), value: meter.levels)
     }
 }

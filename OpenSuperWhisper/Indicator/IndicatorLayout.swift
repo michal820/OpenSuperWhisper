@@ -3,7 +3,8 @@ import SwiftUI
 
 /// Where the recording indicator sits and how big it is. The user moves it by
 /// dragging the card and resizes it by dragging the card's right end; both
-/// are remembered across sessions and launches.
+/// are remembered across sessions and launches, the position separately for
+/// each display.
 @MainActor
 final class IndicatorLayout: ObservableObject {
     static let shared = IndicatorLayout()
@@ -48,19 +49,32 @@ final class IndicatorLayout: ObservableObject {
                width: windowSize.width, height: windowSize.height)
     }
 
-    /// Card center last chosen by the user, if it is still on a connected screen.
-    var savedCardCenter: NSPoint? {
-        let prefs = AppPreferences.shared
-        guard let x = prefs.indicatorCenterX, let y = prefs.indicatorCenterY else { return nil }
-        let center = NSPoint(x: x, y: y)
-        return NSScreen.screens.contains { $0.frame.contains(center) } ? center : nil
+    /// Card center the user last chose on this screen, if it still fits on it.
+    func savedCardCenter(on screen: NSScreen) -> NSPoint? {
+        guard let key = Self.key(for: screen),
+              let offset = AppPreferences.shared.indicatorPositions[key], offset.count == 2 else { return nil }
+        let frame = screen.frame
+        let center = NSPoint(x: frame.minX + offset[0], y: frame.minY + offset[1])
+        return frame.contains(center) ? center : nil
     }
 
+    /// Remembers the size, and the position for the screen the card ended up on.
     func save(cardCenter center: NSPoint) {
         let prefs = AppPreferences.shared
-        prefs.indicatorCenterX = Double(center.x)
-        prefs.indicatorCenterY = Double(center.y)
         prefs.indicatorScale = Double(scale)
+        guard let screen = NSScreen.screens.first(where: { $0.frame.contains(center) }),
+              let key = Self.key(for: screen) else { return }
+        var positions = prefs.indicatorPositions
+        positions[key] = [Double(center.x - screen.frame.minX), Double(center.y - screen.frame.minY)]
+        prefs.indicatorPositions = positions
+    }
+
+    /// The display's UUID, which, unlike its display ID, survives reboots and
+    /// reconnecting or rearranging monitors.
+    private static func key(for screen: NSScreen) -> String? {
+        guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
+              let uuid = CGDisplayCreateUUIDFromDisplayID(number.uint32Value)?.takeRetainedValue() else { return nil }
+        return CFUUIDCreateString(nil, uuid) as String
     }
 }
 

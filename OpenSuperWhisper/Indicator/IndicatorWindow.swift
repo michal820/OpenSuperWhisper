@@ -400,6 +400,15 @@ class IndicatorViewModel: ObservableObject {
     }
 }
 
+/// Indicator palette: a translucent deep indigo card with lavender and pink accents.
+enum IndicatorStyle {
+    static let tint = Color(red: 0.16, green: 0.13, blue: 0.28).opacity(0.6)
+    static let border = Color.white.opacity(0.1)
+    static let text = Color(red: 0.92, green: 0.89, blue: 1.0)
+    static let lavender = Color(red: 0.78, green: 0.72, blue: 1.0)
+    static let pink = Color(red: 0.96, green: 0.62, blue: 0.82)
+}
+
 struct RecordingIndicator: View {
     let isBlinking: Bool
     var scale: CGFloat = 1
@@ -409,15 +418,15 @@ struct RecordingIndicator: View {
             .fill(
                 LinearGradient(
                     colors: [
-                        Color.red.opacity(0.8),
-                        Color.red
+                        IndicatorStyle.pink.opacity(0.8),
+                        IndicatorStyle.pink
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             )
             .frame(width: 8 * scale, height: 8 * scale)
-            .shadow(color: .red.opacity(0.5), radius: 4 * scale)
+            .shadow(color: IndicatorStyle.pink.opacity(0.5), radius: 4 * scale)
             .opacity(isBlinking ? 0.3 : 1.0)
             .animation(.easeInOut(duration: 0.4), value: isBlinking)
     }
@@ -457,13 +466,6 @@ struct IndicatorWindow: View {
     
     @ObservedObject var viewModel: IndicatorViewModel
     @ObservedObject var layout = IndicatorLayout.shared
-    @Environment(\.colorScheme) private var colorScheme
-    
-    private var backgroundColor: Color {
-        colorScheme == .dark
-            ? Color.black.opacity(0.24)
-            : Color.white.opacity(0.24)
-    }
     
     var body: some View {
 
@@ -545,15 +547,19 @@ struct IndicatorWindow: View {
                 EmptyView()
             }
         }
+        .foregroundColor(IndicatorStyle.text)
         .padding(.horizontal, 24 * s)
         .frame(height: Self.cardSize.height * s)
         .background {
             rect
-                .fill(backgroundColor)
+                .fill(IndicatorStyle.tint)
                 .background {
                     rect
-                        .fill(Material.thinMaterial)
+                        .fill(Material.ultraThinMaterial)
                 }
+        }
+        .overlay {
+            rect.strokeBorder(IndicatorStyle.border, lineWidth: 1)
         }
         .overlay(alignment: .bottom) {
             if viewModel.isConfirmingCancel {
@@ -561,6 +567,8 @@ struct IndicatorWindow: View {
             }
         }
         .clipShape(rect)
+        // The palette is designed for a dark card in either system appearance.
+        .environment(\.colorScheme, .dark)
         .frame(width: Self.cardSize.width * s)
         // The ideal size of the root view must match the panel: NSHostingView
         // resizes the window down to SwiftUI's ideal size, and a window sized
