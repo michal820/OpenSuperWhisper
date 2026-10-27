@@ -1,5 +1,18 @@
 # OpenSuperWhisper
 
+> **About this fork**
+>
+> A personal build of [OpenSuperWhisper](https://github.com/Starmel/OpenSuperWhisper) based on the latest `develop` branch, which includes the fixes made since the 0.1.0 release (failed recordings kept in history with a retry button, no more line breaks inside long transcriptions, visible errors). On top of that:
+>
+> - **Live waveform** in the recording indicator: thin scrolling bars that adapt to your mic's loudness, on a translucent indigo card.
+> - **Pinned, draggable, resizable indicator**: drag it anywhere and drag its right end to resize. Position and size are remembered per display.
+> - **Music keeps playing on Bluetooth headphones**: records from the selected mic directly instead of switching the system default input, which flipped AirPods and similar headsets between music (A2DP) and call (HFP) mode and paused or re-leveled audio on every recording.
+> - **Builds with Xcode 16**: KeyboardShortcuts is pinned to 2.x, since 3.x needs Swift 6.2 (Xcode 26).
+>
+> **Install:** download `OpenSuperWhisper-custom.zip` from [Releases](https://github.com/michal820/OpenSuperWhisper/releases), unzip it and move the app to Applications. It is signed with a development certificate and not notarized, so macOS blocks the first launch: open **System Settings → Privacy & Security** and click **Open Anyway**. Requires an Apple Silicon Mac with macOS 14 or later.
+>
+> **Build:** same as upstream, see [Building locally](#building-locally).
+
 OpenSuperWhisper is a macOS application that provides real-time audio transcription using the Whisper model. It offers a seamless way to record and transcribe audio with customizable settings and keyboard shortcuts.
 
 <p align="center">
