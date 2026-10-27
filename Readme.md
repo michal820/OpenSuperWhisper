@@ -1,91 +1,63 @@
-# OpenSuperWhisper
+# OpenSuperWhisper (michal820 fork)
 
-> **About this fork**
->
-> A personal build of [OpenSuperWhisper](https://github.com/Starmel/OpenSuperWhisper) based on the latest `develop` branch, which includes the fixes made since the 0.1.0 release (failed recordings kept in history with a retry button, no more line breaks inside long transcriptions, visible errors). On top of that:
->
-> - **Live waveform** in the recording indicator: thin scrolling bars that adapt to your mic's loudness, on a translucent indigo card.
-> - **Pinned, draggable, resizable indicator**: drag it anywhere and drag its right end to resize. Position and size are remembered per display.
-> - **Music keeps playing on Bluetooth headphones**: records from the selected mic directly instead of switching the system default input, which flipped AirPods and similar headsets between music (A2DP) and call (HFP) mode and paused or re-leveled audio on every recording.
-> - **Builds with Xcode 16**: KeyboardShortcuts is pinned to 2.x, since 3.x needs Swift 6.2 (Xcode 26).
->
-> **Install:** download `OpenSuperWhisper-custom.zip` from [Releases](https://github.com/michal820/OpenSuperWhisper/releases), unzip it and move the app to Applications. It is signed with a development certificate and not notarized, so macOS blocks the first launch: open **System Settings → Privacy & Security** and click **Open Anyway**. Requires an Apple Silicon Mac with macOS 14 or later.
->
-> **Build:** same as upstream, see [Building locally](#building-locally).
+A fork of [Starmel/OpenSuperWhisper](https://github.com/Starmel/OpenSuperWhisper), the free, open-source macOS dictation app that transcribes your voice locally with Whisper and pastes the text wherever your cursor is.
 
-OpenSuperWhisper is a macOS application that provides real-time audio transcription using the Whisper model. It offers a seamless way to record and transcribe audio with customizable settings and keyboard shortcuts.
+This fork redesigns the recording indicator and stops recordings from interrupting music on Bluetooth headphones.
 
-<p align="center">
-<img src="docs/image.png" width="400" /> <img src="docs/image_indicator.png" width="400" />
-</p>
+**[Download the latest build](https://github.com/michal820/OpenSuperWhisper/releases/latest)**
 
-## Features
+## What's changed in this fork
 
-- 🎙️ Real-time audio recording and transcription
-- 🧠 Two transcription engines: [Whisper](https://github.com/ggerganov/whisper.cpp) and [Parakeet](https://github.com/AntinomyCollective/FluidAudio) — download models directly from the app
-- ⌨️ Global keyboard shortcuts — key combination or single modifier key (e.g. Left ⌘, Right ⌥, Fn)
-- 🖱️ Mouse button trigger — bind the middle or an extra (thumb) mouse button to start/stop recording
-- ✊ Hold-to-record mode — hold the shortcut, modifier key or mouse button to record, release to stop
-- 📁 Drag & drop audio files for transcription with queue processing
-- 🎤 Microphone selection — switch between built-in, external, Bluetooth and iPhone (Apple Continuity) mics from the menu bar
-- 🌍 Support for multiple languages with auto-detection
-- 🇯🇵🇨🇳🇰🇷 Asian language autocorrect ([autocorrect](https://github.com/huacnlee/autocorrect))
+### Redesigned recording indicator
 
-## Installation
+- **Live waveform** instead of a blinking red dot. Thin bars scroll as you speak, newest on the right, shaded from lavender to pink.
+- **Adapts to your microphone.** Bar height follows your recent loudness, so quiet mics still fill the bars and loud ones don't clip.
+- **Translucent indigo card** with a blurred, see-through background. Looks the same in light and dark mode.
+- **Stays where you put it.** The indicator no longer jumps to your cursor. Drag it anywhere.
+- **Resizable.** Drag its right end to make it bigger or smaller. Text stays sharp at any size.
+- **Per monitor.** Each display remembers its own position and size, and the indicator appears on the display you're working on.
 
-```shell
-brew update # Optional
-brew install opensuperwhisper
-```
+### Music keeps playing on AirPods and other Bluetooth headphones
 
-Or from [GitHub releases page](https://github.com/Starmel/OpenSuperWhisper/releases).
+The original app switches the Mac's system-wide default microphone when a recording starts and switches it back when it ends. With Bluetooth headphones, each switch flips them between music mode (A2DP) and call mode (HFP), which pauses your music and changes its volume. This fork records from the selected microphone directly and never changes the system default.
 
-## Requirements
+### Unreleased fixes from the original app
 
-- macOS (Apple Silicon/ARM64)
+The last official release (0.1.0) is from March 2026. This fork is built from the original app's latest code, which adds, among other fixes:
 
-## Support
+- **Failed transcriptions keep the recording** in history, with a retry button.
+- **No more broken spacing** in long transcriptions (a line break and a leading space every few seconds).
+- **Errors are shown** instead of failing silently.
 
-If you encounter any issues or have questions, please:
-1. Check the existing issues in the repository
-2. Create a new issue with detailed information about your problem
-3. Include system information and logs when reporting bugs
+### Builds with Xcode 16
 
-## Building locally
+`KeyboardShortcuts` is pinned to 2.x, because 3.x requires Swift 6.2 (Xcode 26).
 
-To build locally, you'll need:
+## Install
 
-    git clone git@github.com:Starmel/OpenSuperWhisper.git
+1. Download `OpenSuperWhisper-custom.zip` from [Releases](https://github.com/michal820/OpenSuperWhisper/releases/latest), unzip it and move **OpenSuperWhisper** to Applications.
+2. Open it. The build is signed with a development certificate and isn't notarized, so macOS blocks the first launch. Click **Done**, then go to **System Settings → Privacy & Security** and click **Open Anyway**.
+3. Allow **Microphone** and turn on OpenSuperWhisper under **Accessibility** (needed to paste).
+4. Pick a model. **Whisper V3 Large** (large-v3-turbo, 1.6 GB) is a good default.
+5. Press **Option + `** to start and stop recording. You can change the shortcut in Settings.
+
+If you installed the original app with Homebrew, run `brew uninstall --cask opensuperwhisper` first so an update doesn't replace this build.
+
+Requires an Apple Silicon Mac with macOS 14 or later.
+
+## Build from source
+
+    git clone https://github.com/michal820/OpenSuperWhisper.git
     cd OpenSuperWhisper
     git submodule update --init --recursive
     brew install cmake libomp rust ruby
     gem install xcpretty
     ./run.sh build
 
-In case of problems, consult `.github/workflows/build.yml` which is our CI workflow
-where the app gets built automatically on GitHub's CI.
+## Everything else
 
-## Contributing
+For the full feature list, settings and model notes, see the [original README](https://github.com/Starmel/OpenSuperWhisper#readme).
 
-Contributions are welcome! Please feel free to submit pull requests or create issues for bugs and feature requests.
+## Credits and license
 
-### Contribution TODO list
-
-- [ ] Streaming transcription
-- [ ] Custom dictionary / keyword boosting ([#19](https://github.com/Starmel/OpenSuperWhisper/issues/19))
-- [ ] Intel macOS compatibility ([#15](https://github.com/Starmel/OpenSuperWhisper/issues/15))
-- [ ] Agent mode ([#14](https://github.com/Starmel/OpenSuperWhisper/issues/14))
-- [x] Background app ([#8](https://github.com/Starmel/OpenSuperWhisper/issues/8))
-- [x] Support long-press single key audio recording ([#18](https://github.com/Starmel/OpenSuperWhisper/issues/18))
-
-## License
-
-OpenSuperWhisper is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Whisper Models
-
-You can download Whisper model files (`.bin`) from the [Whisper.cpp Hugging Face repository](https://huggingface.co/ggerganov/whisper.cpp/tree/main). Place the downloaded `.bin` files in the app's models directory. On first launch, the app will attempt to copy a default model automatically, but you can add more models manually.
-
-### Hebrew (ivrit.ai)
-
-For Hebrew transcription, download the **"Turbo V3 Hebrew"** model from Settings → Model. It is [ivrit.ai](https://www.ivrit.ai/)'s Hebrew fine-tune of `whisper-large-v3-turbo` ([whisper-large-v3-turbo-ggml](https://huggingface.co/ivrit-ai/whisper-large-v3-turbo-ggml)) — the same base model as the other "Turbo V3" entries, but tuned for Hebrew. Selecting it automatically sets the input language to Hebrew, which these models require to be set explicitly.
+OpenSuperWhisper is created by [Vyacheslav Kornienko (Starmel)](https://github.com/Starmel). Licensed under the MIT License, see [LICENSE](LICENSE).
