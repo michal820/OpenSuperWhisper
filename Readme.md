@@ -4,6 +4,10 @@ A fork of [Starmel/OpenSuperWhisper](https://github.com/Starmel/OpenSuperWhisper
 
 This fork redesigns the recording indicator and stops recordings from interrupting music on Bluetooth headphones.
 
+<p align="center">
+  <img src="docs/fork-indicator.png" width="560" alt="The recording indicator: a live waveform on a translucent indigo card" />
+</p>
+
 **[Download the latest build](https://github.com/michal820/OpenSuperWhisper/releases/latest)**
 
 ## What's changed in this fork
