@@ -8,8 +8,8 @@ import KeyboardShortcuts
 import SwiftUI
 
 extension KeyboardShortcuts.Name {
-    static let toggleRecord = Self("toggleRecord", initial: .init(.backtick, modifiers: .option))
-    static let escape = Self("escape", initial: .init(.escape))
+    static let toggleRecord = Self("toggleRecord", default: .init(.backtick, modifiers: .option))
+    static let escape = Self("escape", default: .init(.escape))
 }
 
 @MainActor
