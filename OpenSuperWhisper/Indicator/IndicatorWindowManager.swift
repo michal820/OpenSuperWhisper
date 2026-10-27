@@ -41,7 +41,6 @@ class IndicatorWindowManager: IndicatorViewDelegate {
         // cannot be trusted for positioning and is ignored.
         let pointScreen = point.flatMap { FocusUtils.screenContaining(point: $0) }
         let targetScreen = pointScreen ?? FocusUtils.getFocusedWindowScreen() ?? NSScreen.screens.first
-        let anchorPoint = pointScreen != nil ? point : nil
         
         // Never show the window without positioning it: an unpositioned panel
         // appears at its default origin (0,0) — the bottom-left corner.
@@ -53,31 +52,11 @@ class IndicatorWindowManager: IndicatorViewDelegate {
         }
         guard let window = window else { return }
         
-        let windowFrame = window.frame
-        let screenFrame = screen.frame
-        
-        // The card is centered inside a larger panel (margins for the appear
-        // offset and shadow), so position the visible card, not the window.
-        let cardBottomInset = (windowFrame.height - IndicatorWindow.cardSize.height) / 2
-        
-        var x: CGFloat
-        var y: CGFloat
-        
-        if let point = anchorPoint {
-            // Card bottom 20 points above cursor
-            x = point.x - windowFrame.width / 2
-            y = point.y + 20 - cardBottomInset
-        } else {
-            // Default: card top 100 points from the top center of screen
-            x = screenFrame.midX - windowFrame.width / 2
-            y = screenFrame.maxY - 100 - windowFrame.height + cardBottomInset
-        }
-        
-        // Adjust if out of screen bounds
-        x = max(screenFrame.minX, min(x, screenFrame.maxX - windowFrame.width))
-        y = max(screenFrame.minY, min(y, screenFrame.maxY - windowFrame.height))
-        
-        window.setFrameOrigin(NSPoint(x: x, y: y))
+        // The indicator stays where the user last dragged it; until then the
+        // card's top sits 100 points below the top center of the screen.
+        let layout = IndicatorLayout.shared
+        let defaultCenter = NSPoint(x: screen.frame.midX, y: screen.frame.maxY - 100 - layout.cardSize.height / 2)
+        window.setFrame(layout.windowFrame(cardCenter: layout.savedCardCenter ?? defaultCenter), display: false)
         
         // The first committed frame must be fully transparent, otherwise the
         // card flashes at full size before the appear animation starts.
@@ -213,7 +192,10 @@ class IndicatorWindowManager: IndicatorViewDelegate {
             panel.backgroundColor = .clear
             panel.isOpaque = false
             panel.hasShadow = false
-            panel.ignoresMouseEvents = true
+            // Leave ignoresMouseEvents at its default: clicks then fall through
+            // the transparent margins, and IndicatorHostingView handles drags
+            // on the card. Setting it to false would make the margins opaque
+            // to clicks.
             panel.hidesOnDeactivate = false
             
             self.window = panel
@@ -225,7 +207,7 @@ class IndicatorWindowManager: IndicatorViewDelegate {
         if let hostingView = window.contentView as? NSHostingView<IndicatorWindow> {
             hostingView.rootView = IndicatorWindow(viewModel: presentedViewModel)
         } else {
-            let hostingView = NSHostingView(rootView: IndicatorWindow(viewModel: presentedViewModel))
+            let hostingView = IndicatorHostingView(rootView: IndicatorWindow(viewModel: presentedViewModel))
             // Never let SwiftUI's ideal size drive the window frame: with the
             // default sizingOptions the hosting view shrinks the panel down to
             // the card size, and the window bounds then clip the animation —
@@ -235,7 +217,7 @@ class IndicatorWindowManager: IndicatorViewDelegate {
             hostingView.wantsLayer = true
             window.contentView = hostingView
         }
-        window.setContentSize(IndicatorWindow.windowSize)
+        window.setContentSize(IndicatorLayout.shared.windowSize)
         window.contentView?.layoutSubtreeIfNeeded()
     }
     

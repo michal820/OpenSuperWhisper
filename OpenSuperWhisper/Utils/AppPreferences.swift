@@ -138,4 +138,14 @@ final class AppPreferences {
 
     @UserDefault(key: "autoDeleteRecordingsAfterDays", defaultValue: 30)
     var autoDeleteRecordingsAfterDays: Int
+
+    // Recording indicator placement, set by dragging and resizing the indicator
+    @OptionalUserDefault(key: "indicatorCenterX")
+    var indicatorCenterX: Double?
+
+    @OptionalUserDefault(key: "indicatorCenterY")
+    var indicatorCenterY: Double?
+
+    @UserDefault(key: "indicatorScale", defaultValue: 1.0)
+    var indicatorScale: Double
 }

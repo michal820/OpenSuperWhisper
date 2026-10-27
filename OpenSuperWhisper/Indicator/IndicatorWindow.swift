@@ -148,6 +148,7 @@ class IndicatorViewModel: ObservableObject {
         guard let id = RecordingSessionController.shared.begin(stop: { self.decodeRecording() }) else { return }
         recordingSessionID = id
         state = .recording
+        AudioLevelMeter.shared.reset()
         startBlinking()
         recordingStartedAt = Date()
         
@@ -453,6 +454,7 @@ struct IndicatorWindow: View {
     static let appearInitialScale: CGFloat = 0.5
     
     @ObservedObject var viewModel: IndicatorViewModel
+    @ObservedObject var layout = IndicatorLayout.shared
     @Environment(\.colorScheme) private var colorScheme
     
     private var backgroundColor: Color {
@@ -480,17 +482,17 @@ struct IndicatorWindow: View {
                 
             case .recording:
                 HStack(spacing: 8) {
-                    RecordingIndicator(isBlinking: viewModel.isBlinking)
-                        .frame(width: 24)
-                    
                     if viewModel.isConfirmingCancel {
+                        RecordingIndicator(isBlinking: viewModel.isBlinking)
+                            .frame(width: 24)
+
                         Text("Press Esc to cancel")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.orange)
                             .transition(.opacity)
                     } else {
-                        Text("Recording...")
-                            .font(.system(size: 13, weight: .semibold))
+                        WaveformView()
+                            .frame(maxWidth: .infinity)
                             .transition(.opacity)
                     }
                 }
@@ -551,12 +553,22 @@ struct IndicatorWindow: View {
                 CancelConfirmationBar()
             }
         }
+        // Grip for the drag-to-resize zone (IndicatorHostingView).
+        .overlay(alignment: .trailing) {
+            Image(systemName: "arrow.left.and.right")
+                .font(.system(size: 7, weight: .bold))
+                .foregroundStyle(.tertiary)
+                .padding(.trailing, 9)
+        }
         .clipShape(rect)
         .frame(width: Self.cardSize.width)
         // The ideal size of the root view must match the panel: NSHostingView
         // resizes the window down to SwiftUI's ideal size, and a window sized
         // to the bare card clips the appear offset, bounce overshoot and shadow.
         .frame(width: Self.windowSize.width, height: Self.windowSize.height)
+        // The user-chosen size; IndicatorWindowManager sizes the panel to match.
+        .scaleEffect(layout.scale)
+        .frame(width: Self.windowSize.width * layout.scale, height: Self.windowSize.height * layout.scale)
         // The appear/hide animation is NOT done in SwiftUI on purpose:
         // animating scaleEffect/offset/opacity re-rasterizes the card (material
         // + gradients + shadow) on the CPU every frame and stalls the main

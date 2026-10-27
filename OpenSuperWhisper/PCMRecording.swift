@@ -129,14 +129,19 @@ final class PCMRecordingSession {
     private let writer: PCMRecordingWriter
     private var failure: Error?
     private let onFailure: (Error) -> Void
+    private let onLevel: (CGFloat) -> Void
+    private var pendingLevel: CGFloat = 0
+    private var lastLevelReport: TimeInterval = 0
 
-    init(url: URL, onFailure: @escaping (Error) -> Void = { _ in }) throws {
+    init(url: URL, onLevel: @escaping (CGFloat) -> Void = { _ in }, onFailure: @escaping (Error) -> Void = { _ in }) throws {
         self.onFailure = onFailure
+        self.onLevel = onLevel
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
         writer = try PCMRecordingWriter(url: url, inputFormat: format)
         input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
             guard let self else { return }
+            self.reportLevel(of: buffer)
             guard let copy = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: buffer.frameLength) else {
                 self.queue.async { self.recordFailure(TranscriptionError.audioConversionFailed) }
                 return
@@ -154,6 +159,18 @@ final class PCMRecordingSession {
             }
         }
         engine.prepare()
+    }
+
+    /// Runs on the tap thread. Reports the loudest level of each ~50 ms
+    /// window, so the waveform updates at ~20 fps whatever the device's
+    /// buffer rate.
+    private func reportLevel(of buffer: AVAudioPCMBuffer) {
+        pendingLevel = max(pendingLevel, AudioLevelMeter.level(of: buffer))
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now - lastLevelReport >= 0.05 else { return }
+        lastLevelReport = now
+        onLevel(pendingLevel)
+        pendingLevel = 0
     }
 
     private func recordFailure(_ error: Error) {
