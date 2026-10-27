@@ -29,8 +29,11 @@ final class IndicatorLayout: ObservableObject {
         CGSize(width: IndicatorWindow.cardSize.width * scale, height: IndicatorWindow.cardSize.height * scale)
     }
 
+    /// Whole points: AppKit rounds window frames, and the SwiftUI root must
+    /// match the panel exactly.
     var windowSize: CGSize {
-        CGSize(width: IndicatorWindow.windowSize.width * scale, height: IndicatorWindow.windowSize.height * scale)
+        CGSize(width: (IndicatorWindow.windowSize.width * scale).rounded(),
+               height: (IndicatorWindow.windowSize.height * scale).rounded())
     }
 
     /// The card is centered inside the larger panel (margins for the appear

@@ -186,8 +186,8 @@ class AudioRecorder: NSObject, ObservableObject {
         #endif
         
         do {
-            let session = try PCMRecordingSession(url: fileURL, onLevel: { level in
-                Task { @MainActor in AudioLevelMeter.shared.push(level) }
+            let session = try PCMRecordingSession(url: fileURL, onLevel: { decibels in
+                Task { @MainActor in AudioLevelMeter.shared.push(decibels: decibels) }
             }) { [weak self] error in
                 self?.workQueue.async {
                     guard let self, self.currentRecordingURL == fileURL else { return }

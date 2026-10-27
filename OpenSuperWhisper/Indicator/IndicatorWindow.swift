@@ -402,6 +402,7 @@ class IndicatorViewModel: ObservableObject {
 
 struct RecordingIndicator: View {
     let isBlinking: Bool
+    var scale: CGFloat = 1
     
     var body: some View {
         Circle()
@@ -415,26 +416,27 @@ struct RecordingIndicator: View {
                     endPoint: .bottomTrailing
                 )
             )
-            .frame(width: 8, height: 8)
-            .shadow(color: .red.opacity(0.5), radius: 4)
+            .frame(width: 8 * scale, height: 8 * scale)
+            .shadow(color: .red.opacity(0.5), radius: 4 * scale)
             .opacity(isBlinking ? 0.3 : 1.0)
             .animation(.easeInOut(duration: 0.4), value: isBlinking)
     }
 }
 
 struct CancelConfirmationBar: View {
+    var scale: CGFloat = 1
     @State private var progress: CGFloat = 1
     
     var body: some View {
         GeometryReader { geo in
             Capsule()
                 .fill(Color.orange)
-                .frame(width: geo.size.width * progress, height: 2)
+                .frame(width: geo.size.width * progress, height: 2 * scale)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(height: 2)
-        .padding(.horizontal, 12)
-        .padding(.bottom, 3)
+        .frame(height: 2 * scale)
+        .padding(.horizontal, 12 * scale)
+        .padding(.bottom, 3 * scale)
         .onAppear {
             withAnimation(.linear(duration: IndicatorViewModel.cancelConfirmationWindow)) {
                 progress = 0
@@ -465,33 +467,36 @@ struct IndicatorWindow: View {
     
     var body: some View {
 
-        let rect = RoundedRectangle(cornerRadius: 24)
+        // Laid out at the user-chosen size (IndicatorLayout) rather than
+        // scaled with scaleEffect, which magnifies a 1x render and blurs text.
+        let s = layout.scale
+        let rect = RoundedRectangle(cornerRadius: 24 * s)
         
         VStack(spacing: 12) {
             switch viewModel.state {
             case .connecting:
-                HStack(spacing: 8) {
+                HStack(spacing: 8 * s) {
                     ProgressView()
-                        .scaleEffect(0.7)
-                        .frame(width: 24)
+                        .scaleEffect(0.7 * s)
+                        .frame(width: 24 * s)
                     
                     Text("Connecting...")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 13 * s, weight: .semibold))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 
             case .recording:
-                HStack(spacing: 8) {
+                HStack(spacing: 8 * s) {
                     if viewModel.isConfirmingCancel {
-                        RecordingIndicator(isBlinking: viewModel.isBlinking)
-                            .frame(width: 24)
+                        RecordingIndicator(isBlinking: viewModel.isBlinking, scale: s)
+                            .frame(width: 24 * s)
 
                         Text("Press Esc to cancel")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 12 * s, weight: .semibold))
                             .foregroundColor(.orange)
                             .transition(.opacity)
                     } else {
-                        WaveformView()
+                        WaveformView(scale: s)
                             .frame(maxWidth: .infinity)
                             .transition(.opacity)
                     }
@@ -500,36 +505,38 @@ struct IndicatorWindow: View {
                 .animation(.easeInOut(duration: 0.2), value: viewModel.isConfirmingCancel)
                 
             case .decoding:
-                HStack(spacing: 8) {
+                HStack(spacing: 8 * s) {
                     ProgressView()
-                        .scaleEffect(0.7)
-                        .frame(width: 24)
+                        .scaleEffect(0.7 * s)
+                        .frame(width: 24 * s)
                     
                     Text("Transcribing...")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 13 * s, weight: .semibold))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 
             case .busy:
-                HStack(spacing: 8) {
+                HStack(spacing: 8 * s) {
                     Image(systemName: "hourglass")
+                        .font(.system(size: 13 * s))
                         .foregroundColor(.orange)
-                        .frame(width: 24)
+                        .frame(width: 24 * s)
 
                     Text("Processing...")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 13 * s, weight: .semibold))
                         .foregroundColor(.orange)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             case .noMicrophone:
-                HStack(spacing: 8) {
+                HStack(spacing: 8 * s) {
                     Image(systemName: "mic.slash")
+                        .font(.system(size: 13 * s))
                         .foregroundColor(.orange)
-                        .frame(width: 24)
+                        .frame(width: 24 * s)
 
                     Text("No microphone")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 13 * s, weight: .semibold))
                         .foregroundColor(.orange)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -538,8 +545,8 @@ struct IndicatorWindow: View {
                 EmptyView()
             }
         }
-        .padding(.horizontal, 24)
-        .frame(height: Self.cardSize.height)
+        .padding(.horizontal, 24 * s)
+        .frame(height: Self.cardSize.height * s)
         .background {
             rect
                 .fill(backgroundColor)
@@ -550,25 +557,15 @@ struct IndicatorWindow: View {
         }
         .overlay(alignment: .bottom) {
             if viewModel.isConfirmingCancel {
-                CancelConfirmationBar()
+                CancelConfirmationBar(scale: s)
             }
         }
-        // Grip for the drag-to-resize zone (IndicatorHostingView).
-        .overlay(alignment: .trailing) {
-            Image(systemName: "arrow.left.and.right")
-                .font(.system(size: 7, weight: .bold))
-                .foregroundStyle(.tertiary)
-                .padding(.trailing, 9)
-        }
         .clipShape(rect)
-        .frame(width: Self.cardSize.width)
+        .frame(width: Self.cardSize.width * s)
         // The ideal size of the root view must match the panel: NSHostingView
         // resizes the window down to SwiftUI's ideal size, and a window sized
         // to the bare card clips the appear offset, bounce overshoot and shadow.
-        .frame(width: Self.windowSize.width, height: Self.windowSize.height)
-        // The user-chosen size; IndicatorWindowManager sizes the panel to match.
-        .scaleEffect(layout.scale)
-        .frame(width: Self.windowSize.width * layout.scale, height: Self.windowSize.height * layout.scale)
+        .frame(width: layout.windowSize.width, height: layout.windowSize.height)
         // The appear/hide animation is NOT done in SwiftUI on purpose:
         // animating scaleEffect/offset/opacity re-rasterizes the card (material
         // + gradients + shadow) on the CPU every frame and stalls the main

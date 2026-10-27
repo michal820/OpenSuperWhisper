@@ -1339,7 +1339,7 @@ final class IndicatorWindowGeometryTests: XCTestCase {
         // Give AppKit a runloop turn to apply any pending autosizing.
         try await Task.sleep(nanoseconds: 300_000_000)
 
-        XCTAssertEqual(manager.window?.frame.size, IndicatorWindow.windowSize,
+        XCTAssertEqual(manager.window?.frame.size, IndicatorLayout.shared.windowSize,
                        "The panel must keep its size; SwiftUI content must not resize the window")
 
         manager.hide()

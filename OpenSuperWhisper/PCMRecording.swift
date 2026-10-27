@@ -129,11 +129,11 @@ final class PCMRecordingSession {
     private let writer: PCMRecordingWriter
     private var failure: Error?
     private let onFailure: (Error) -> Void
-    private let onLevel: (CGFloat) -> Void
-    private var pendingLevel: CGFloat = 0
+    private let onLevel: (Float) -> Void
+    private var pendingDecibels: Float = -160
     private var lastLevelReport: TimeInterval = 0
 
-    init(url: URL, onLevel: @escaping (CGFloat) -> Void = { _ in }, onFailure: @escaping (Error) -> Void = { _ in }) throws {
+    init(url: URL, onLevel: @escaping (Float) -> Void = { _ in }, onFailure: @escaping (Error) -> Void = { _ in }) throws {
         self.onFailure = onFailure
         self.onLevel = onLevel
         let input = engine.inputNode
@@ -161,16 +161,16 @@ final class PCMRecordingSession {
         engine.prepare()
     }
 
-    /// Runs on the tap thread. Reports the loudest level of each ~50 ms
-    /// window, so the waveform updates at ~20 fps whatever the device's
+    /// Runs on the tap thread. Reports the loudest level (dBFS) of each ~33 ms
+    /// window, so the waveform updates at ~30 fps whatever the device's
     /// buffer rate.
     private func reportLevel(of buffer: AVAudioPCMBuffer) {
-        pendingLevel = max(pendingLevel, AudioLevelMeter.level(of: buffer))
+        pendingDecibels = max(pendingDecibels, AudioLevelMeter.decibels(of: buffer))
         let now = ProcessInfo.processInfo.systemUptime
-        guard now - lastLevelReport >= 0.05 else { return }
+        guard now - lastLevelReport >= 1.0 / 30 else { return }
         lastLevelReport = now
-        onLevel(pendingLevel)
-        pendingLevel = 0
+        onLevel(pendingDecibels)
+        pendingDecibels = -160
     }
 
     private func recordFailure(_ error: Error) {
