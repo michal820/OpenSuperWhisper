@@ -3,8 +3,7 @@ import SwiftUI
 
 /// Where the recording indicator sits and how big it is. The user moves it by
 /// dragging the card and resizes it by dragging the card's right end; both
-/// are remembered across sessions and launches, the position separately for
-/// each display.
+/// are remembered across sessions and launches, separately for each display.
 @MainActor
 final class IndicatorLayout: ObservableObject {
     static let shared = IndicatorLayout()
@@ -12,11 +11,9 @@ final class IndicatorLayout: ObservableObject {
     /// Width of the drag-to-resize zone at the card's right end, before scaling.
     static let resizeHandleWidth: CGFloat = 24
 
-    @Published private(set) var scale: CGFloat
+    @Published private(set) var scale: CGFloat = 1
 
-    private init() {
-        scale = Self.clamped(CGFloat(AppPreferences.shared.indicatorScale))
-    }
+    private init() {}
 
     private static func clamped(_ scale: CGFloat) -> CGFloat {
         min(max(scale, scaleRange.lowerBound), scaleRange.upperBound)
@@ -24,6 +21,12 @@ final class IndicatorLayout: ObservableObject {
 
     func setScale(_ newScale: CGFloat) {
         scale = Self.clamped(newScale)
+    }
+
+    /// Switches to the size the user last chose on this screen.
+    func applySavedScale(for screen: NSScreen) {
+        let saved = Self.key(for: screen).flatMap { AppPreferences.shared.indicatorScales[$0] }
+        setScale(CGFloat(saved ?? 1))
     }
 
     var cardSize: CGSize {
@@ -58,15 +61,17 @@ final class IndicatorLayout: ObservableObject {
         return frame.contains(center) ? center : nil
     }
 
-    /// Remembers the size, and the position for the screen the card ended up on.
+    /// Remembers the position and size for the screen the card ended up on.
     func save(cardCenter center: NSPoint) {
         let prefs = AppPreferences.shared
-        prefs.indicatorScale = Double(scale)
         guard let screen = NSScreen.screens.first(where: { $0.frame.contains(center) }),
               let key = Self.key(for: screen) else { return }
         var positions = prefs.indicatorPositions
         positions[key] = [Double(center.x - screen.frame.minX), Double(center.y - screen.frame.minY)]
         prefs.indicatorPositions = positions
+        var scales = prefs.indicatorScales
+        scales[key] = Double(scale)
+        prefs.indicatorScales = scales
     }
 
     /// The display's UUID, which, unlike its display ID, survives reboots and

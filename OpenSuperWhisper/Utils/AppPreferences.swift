@@ -139,11 +139,12 @@ final class AppPreferences {
     @UserDefault(key: "autoDeleteRecordingsAfterDays", defaultValue: 30)
     var autoDeleteRecordingsAfterDays: Int
 
-    // Recording indicator placement, set by dragging and resizing the indicator.
-    // Card center per display UUID, as [x, y] from the display's bottom-left corner.
+    // Recording indicator placement per display UUID, set by dragging and
+    // resizing the indicator. Card center as [x, y] from the display's
+    // bottom-left corner.
     @UserDefault(key: "indicatorPositions", defaultValue: [:])
     var indicatorPositions: [String: [Double]]
 
-    @UserDefault(key: "indicatorScale", defaultValue: 1.0)
-    var indicatorScale: Double
+    @UserDefault(key: "indicatorScales", defaultValue: [:])
+    var indicatorScales: [String: Double]
 }

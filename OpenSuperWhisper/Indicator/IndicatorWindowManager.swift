@@ -52,9 +52,10 @@ class IndicatorWindowManager: IndicatorViewDelegate {
         }
         guard let window = window else { return }
         
-        // Each screen keeps the spot the user last dragged the indicator to;
-        // until then the card's top sits 100 points below its top center.
+        // Each screen keeps the size and spot the user last gave the indicator
+        // there; until then the card's top sits 100 points below its top center.
         let layout = IndicatorLayout.shared
+        layout.applySavedScale(for: screen)
         let defaultCenter = NSPoint(x: screen.frame.midX, y: screen.frame.maxY - 100 - layout.cardSize.height / 2)
         window.setFrame(layout.windowFrame(cardCenter: layout.savedCardCenter(on: screen) ?? defaultCenter), display: false)
         
